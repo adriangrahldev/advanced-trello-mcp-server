@@ -954,6 +954,213 @@ server.tool('add-labels', {
         };
     }
 });
+// ==========================================
+// LABELS API - Additional Tools
+// Based on https://developer.atlassian.com/cloud/trello/rest/api-group-labels/
+// ==========================================
+// GET /labels/{id} - Get a Label
+server.tool('get-label', {
+    labelId: zod_1.z.string().describe('ID of the label to retrieve'),
+    fields: zod_1.z.string().optional().describe('Comma-separated list of fields to include')
+}, async ({ labelId, fields }) => {
+    try {
+        if (!trelloApiKey || !trelloApiToken) {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: 'Trello API credentials are not configured',
+                    },
+                ],
+                isError: true,
+            };
+        }
+        const url = new URL(`https://api.trello.com/1/labels/${labelId}`);
+        url.searchParams.append('key', trelloApiKey);
+        url.searchParams.append('token', trelloApiToken);
+        if (fields)
+            url.searchParams.append('fields', fields);
+        const response = await fetch(url.toString());
+        const data = await response.json();
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify(data),
+                },
+            ],
+        };
+    }
+    catch (error) {
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: `Error getting label: ${error}`,
+                },
+            ],
+            isError: true,
+        };
+    }
+});
+// PUT /labels/{id} - Update a Label
+server.tool('update-label', {
+    labelId: zod_1.z.string().describe('ID of the label to update'),
+    name: zod_1.z.string().optional().describe('New name for the label'),
+    color: zod_1.z.enum([
+        'yellow',
+        'purple',
+        'blue',
+        'red',
+        'green',
+        'orange',
+        'black',
+        'sky',
+        'pink',
+        'lime',
+        'null'
+    ]).optional().describe('New color for the label (use "null" to remove color)')
+}, async ({ labelId, name, color }) => {
+    try {
+        if (!trelloApiKey || !trelloApiToken) {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: 'Trello API credentials are not configured',
+                    },
+                ],
+                isError: true,
+            };
+        }
+        const updateData = {};
+        if (name !== undefined)
+            updateData.name = name;
+        if (color !== undefined)
+            updateData.color = color === 'null' ? null : color;
+        const response = await fetch(`https://api.trello.com/1/labels/${labelId}?key=${trelloApiKey}&token=${trelloApiToken}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updateData),
+        });
+        const data = await response.json();
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify(data),
+                },
+            ],
+        };
+    }
+    catch (error) {
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: `Error updating label: ${error}`,
+                },
+            ],
+            isError: true,
+        };
+    }
+});
+// DELETE /labels/{id} - Delete a Label
+server.tool('delete-label', {
+    labelId: zod_1.z.string().describe('ID of the label to delete')
+}, async ({ labelId }) => {
+    try {
+        if (!trelloApiKey || !trelloApiToken) {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: 'Trello API credentials are not configured',
+                    },
+                ],
+                isError: true,
+            };
+        }
+        const response = await fetch(`https://api.trello.com/1/labels/${labelId}?key=${trelloApiKey}&token=${trelloApiToken}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify(data),
+                },
+            ],
+        };
+    }
+    catch (error) {
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: `Error deleting label: ${error}`,
+                },
+            ],
+            isError: true,
+        };
+    }
+});
+// PUT /labels/{id}/{field} - Update a field on a label
+server.tool('update-label-field', {
+    labelId: zod_1.z.string().describe('ID of the label to update'),
+    field: zod_1.z.enum(['name', 'color']).describe('Field to update (name or color)'),
+    value: zod_1.z.string().describe('New value for the field')
+}, async ({ labelId, field, value }) => {
+    try {
+        if (!trelloApiKey || !trelloApiToken) {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: 'Trello API credentials are not configured',
+                    },
+                ],
+                isError: true,
+            };
+        }
+        const url = new URL(`https://api.trello.com/1/labels/${labelId}/${field}`);
+        url.searchParams.append('key', trelloApiKey);
+        url.searchParams.append('token', trelloApiToken);
+        url.searchParams.append('value', value);
+        const response = await fetch(url.toString(), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify(data),
+                },
+            ],
+        };
+    }
+    catch (error) {
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: `Error updating label field: ${error}`,
+                },
+            ],
+            isError: true,
+        };
+    }
+});
 server.tool('get-tickets-by-list', {
     listId: zod_1.z.string().describe('ID of the list to get tickets from'),
     limit: zod_1.z.number().optional().describe('Maximum number of cards to return'),
