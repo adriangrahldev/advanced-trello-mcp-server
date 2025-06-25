@@ -10,7 +10,7 @@
 
 ## 📋 Overview
 
-This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI. Originally supporting 15 basic tools, this version has been expanded to **40+ tools** covering multiple Trello API categories with enterprise-grade functionality.
+This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI. Originally supporting 15 basic tools, this version has been expanded to **44+ tools** covering multiple Trello API categories with enterprise-grade functionality.
 
 ## ✨ Features
 
@@ -18,7 +18,7 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
 - **Actions API**: 16 tools (Complete audit trail, reactions, comments)
 - **Lists API**: 9 tools (Complete list management)
 - **Cards API**: 8 tools (Enhanced card operations)
-- **Labels API**: 4 tools (Label management)
+- **Labels API**: 8 tools (Complete label management) ✅
 - **Boards API**: 1 tool (Basic board access)
 
 ### 🔧 **Enterprise Features**
@@ -100,11 +100,15 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
 - `get-tickets-by-list` - Get cards from specific list
 - `add-comment` - Add comment to card
 
-### 🏷️ **Labels Management (4 tools)**
+### 🏷️ **Labels Management (8 tools)** ✅ **COMPLETE**
 - `create-label` - Create single label
 - `create-labels` - Create multiple labels (batch)
 - `add-label` - Add label to card
 - `add-labels` - Add labels to multiple cards (batch)
+- `get-label` - Get detailed label information
+- `update-label` - Update label name and color
+- `delete-label` - Delete label by ID
+- `update-label-field` - Update specific label field
 
 ### 📊 **Actions & Audit (16 tools)**
 - `get-action` - Get detailed action information
@@ -131,10 +135,10 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
 
 This project follows a strategic 6-phase expansion plan to achieve **100% Trello API coverage**:
 
-### **Phase 1: Foundation** (In Progress)
+### **Phase 1: Foundation** (In Progress - 1/3 Complete)
 - ✅ Complete Lists API (9 tools)
 - ✅ Complete Actions API (16 tools)
-- 🔄 Complete Labels API (4 more tools needed)
+- ✅ Complete Labels API (8 tools) **DONE!**
 - 🔄 Enhanced Cards API (15 more tools needed)
 - 🔄 Enhanced Boards API (8 more tools needed)
 
@@ -161,7 +165,7 @@ This project follows a strategic 6-phase expansion plan to achieve **100% Trello
 - Enterprises API (12 tools)
 - Applications API (4 tools)
 
-**Target: 182 total tools** (currently at 40)
+**Target: 182 total tools** (currently at 44)
 
 ## 🔧 Development
 
@@ -247,9 +251,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Stats
 
-- **Total Tools**: 40 (vs 15 original)
-- **API Coverage**: ~35% (target: 100%)
-- **Lines of Code**: 2,000+ TypeScript
+- **Total Tools**: 44 (vs 15 original)
+- **API Coverage**: ~40% (target: 100%)
+- **Lines of Code**: 2,500+ TypeScript
 - **Type Safety**: 100% with Zod validation
 - **Documentation**: Comprehensive inline docs
 
