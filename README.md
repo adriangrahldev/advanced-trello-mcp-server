@@ -8,6 +8,10 @@
 [![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<a href="https://glama.ai/mcp/servers/@adriangrahldev/advanced-trello-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@adriangrahldev/advanced-trello-mcp-server/badge" alt="Advanced Trello Server MCP server" />
+</a>
+
 ## 📋 Overview
 
 This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI. Originally supporting 15 basic tools, this version has been expanded to **44+ tools** covering multiple Trello API categories with enterprise-grade functionality.
