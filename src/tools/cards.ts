@@ -111,6 +111,77 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 		}
 	);
 
+	// PUT /cards/{id} - Update a card (description, name, or both)
+	server.tool(
+		'update-card',
+		{
+			cardId: z.string().describe('ID of the card to update'),
+			description: z.string().optional().describe('New description for the card (replaces existing). Use empty string to clear.'),
+			name: z.string().optional().describe('New name/title for the card'),
+		},
+		async ({ cardId, description, name }) => {
+			try {
+				if (!credentials.apiKey || !credentials.apiToken) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: 'Trello API credentials are not configured',
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const body: { desc?: string; name?: string } = {};
+				if (description !== undefined) body.desc = description;
+				if (name !== undefined) body.name = name;
+
+				if (Object.keys(body).length === 0) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: 'At least one of description or name must be provided',
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const response = await fetch(
+					`https://api.trello.com/1/cards/${cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
+					{
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(body),
+					}
+				);
+				const data = await response.json();
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(data),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: `Error updating card: ${error}`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
 	// PUT /cards/{id}/idList - Move card to another list
 	server.tool(
 		'move-card',

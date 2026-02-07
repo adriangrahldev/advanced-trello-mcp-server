@@ -94,9 +94,10 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
 - `archive-all-cards-in-list` - Archive all cards in list
 - `move-all-cards-in-list` - Move all cards between lists
 
-### 🎯 **Cards Management (8 tools)**
+### 🎯 **Cards Management (9 tools)**
 - `create-card` - Create single card
 - `create-cards` - Create multiple cards (batch)
+- `update-card` - Update card description and/or name
 - `move-card` - Move card between lists
 - `move-cards` - Move multiple cards (batch)
 - `archive-card` - Archive single card
