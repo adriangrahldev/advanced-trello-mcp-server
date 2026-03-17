@@ -1,4 +1,99 @@
 import { TrelloApiResponse, TrelloCredentials } from '../types/common.js';
+import https from 'node:https';
+
+// Persistent keep-alive agent — reuses TLS connections to avoid CloudFront blocking
+const keepAliveAgent = new https.Agent({
+	keepAlive: true,
+	keepAliveMsecs: 60_000,
+	maxSockets: 2,
+	timeout: 60_000,
+});
+
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000;
+const FETCH_TIMEOUT_MS = 60_000;
+
+/**
+ * Fetch wrapper using keep-alive https agent for Trello API URLs.
+ * Falls back to regular fetch for non-Trello URLs.
+ */
+function keepAliveFetch(url: string, options?: RequestInit): Promise<Response> {
+	// Use keep-alive agent for Trello requests
+	if (url.includes('trello.com')) {
+		return new Promise((resolve, reject) => {
+			const parsedUrl = new URL(url);
+			const reqOptions: https.RequestOptions = {
+				hostname: parsedUrl.hostname,
+				path: parsedUrl.pathname + parsedUrl.search,
+				method: options?.method || 'GET',
+				agent: keepAliveAgent,
+				headers: {
+					...(options?.headers as Record<string, string> || {}),
+				},
+				signal: options?.signal as AbortSignal | undefined,
+			};
+
+			const req = https.request(reqOptions, (res) => {
+				const chunks: Buffer[] = [];
+				res.on('data', (chunk: Buffer) => chunks.push(chunk));
+				res.on('end', () => {
+					const body = Buffer.concat(chunks);
+					resolve(new Response(body, {
+						status: res.statusCode || 200,
+						statusText: res.statusMessage || '',
+						headers: new Headers(res.headers as Record<string, string>),
+					}));
+				});
+			});
+
+			req.on('error', reject);
+			req.on('timeout', () => {
+				req.destroy();
+				reject(new Error('Request timeout'));
+			});
+
+			if (options?.body) {
+				req.write(options.body);
+			}
+			req.end();
+		});
+	}
+	return fetch(url, options);
+}
+
+/**
+ * Fetch with keep-alive + timeout + exponential backoff retry.
+ * Retries on network errors, 429 rate limits, and 5xx server errors.
+ */
+export async function fetchWithRetry(url: string, options?: RequestInit): Promise<Response> {
+	let lastError: Error | undefined;
+	for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+		try {
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+			const response = await keepAliveFetch(url, {
+				...options,
+				signal: controller.signal,
+			});
+			clearTimeout(timeout);
+
+			// Retry on 429 and 5xx
+			if ((response.status === 429 || response.status >= 500) && attempt < MAX_RETRIES - 1) {
+				const retryAfter = response.headers.get('Retry-After');
+				const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : BASE_DELAY_MS * Math.pow(2, attempt);
+				await new Promise(resolve => setTimeout(resolve, delay));
+				continue;
+			}
+			return response;
+		} catch (error) {
+			lastError = error as Error;
+			if (attempt < MAX_RETRIES - 1) {
+				await new Promise(resolve => setTimeout(resolve, BASE_DELAY_MS * Math.pow(2, attempt)));
+			}
+		}
+	}
+	throw lastError;
+}
 
 /**
  * Create a success response for Trello API
@@ -65,7 +160,7 @@ export async function trelloGet(endpoint: string, credentials: TrelloCredentials
 		}
 
 		const url = createTrelloUrl(endpoint, credentials, params);
-		const response = await fetch(url);
+		const response = await fetchWithRetry(url);
 		const data = await response.json();
 
 		return createSuccessResponse(data);
@@ -84,7 +179,7 @@ export async function trelloPost(endpoint: string, credentials: TrelloCredential
 		}
 
 		const url = createTrelloUrl(endpoint, credentials, params);
-		const response = await fetch(url, {
+		const response = await fetchWithRetry(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -109,7 +204,7 @@ export async function trelloPut(endpoint: string, credentials: TrelloCredentials
 		}
 
 		const url = createTrelloUrl(endpoint, credentials, params);
-		const response = await fetch(url, {
+		const response = await fetchWithRetry(url, {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
@@ -134,7 +229,7 @@ export async function trelloDelete(endpoint: string, credentials: TrelloCredenti
 		}
 
 		const url = createTrelloUrl(endpoint, credentials, params);
-		const response = await fetch(url, {
+		const response = await fetchWithRetry(url, {
 			method: 'DELETE',
 			headers: {
 				'Content-Type': 'application/json',
