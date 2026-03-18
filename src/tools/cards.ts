@@ -20,7 +20,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 		},
 		async ({ name, description, listId }) => {
 			try {
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -74,7 +74,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 			try {
 				const results = await Promise.all(
 					cards.map(async (card) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/cards?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'POST',
@@ -152,7 +152,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards/${cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -207,7 +207,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards/${cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -271,7 +271,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 
 				const results = await Promise.all(
 					cards.map(async (card) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/cards/${card.cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'PUT',
@@ -330,7 +330,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards/${cardId}/actions/comments?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -392,7 +392,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 
 				const results = await Promise.all(
 					comments.map(async (comment) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/cards/${comment.cardId}/actions/comments?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'POST',
@@ -455,7 +455,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 				url.searchParams.append('token', credentials.apiToken);
 				if (limit) url.searchParams.append('limit', limit.toString());
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 				return {
 					content: [
@@ -499,7 +499,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards/${cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -556,7 +556,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 
 				const results = await Promise.all(
 					cardIds.map(async (cardId) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/cards/${cardId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'PUT',

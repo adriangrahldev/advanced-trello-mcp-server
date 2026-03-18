@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TrelloCredentials, TrelloColorEnum, TrelloColorWithNullEnum } from '../types/common.js';
+import { fetchWithRetry } from '../utils/api.js';
 
 /**
  * Register all Labels API tools
@@ -17,7 +18,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 		},
 		async ({ boardId, name, color }) => {
 			try {
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/labels?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -63,7 +64,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 		},
 		async ({ cardId, labelId }) => {
 			try {
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/cards/${cardId}/idLabels?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -114,7 +115,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 			try {
 				const results = await Promise.all(
 					labels.map(async (label) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/labels?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'POST',
@@ -167,7 +168,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 			try {
 				const results = await Promise.all(
 					items.map(async (item) => {
-						const response = await fetch(
+						const response = await fetchWithRetry(
 							`https://api.trello.com/1/cards/${item.cardId}/idLabels?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 							{
 								method: 'POST',
@@ -230,7 +231,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 				url.searchParams.append('token', credentials.apiToken);
 				if (fields) url.searchParams.append('fields', fields);
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 
 				return {
@@ -281,7 +282,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 				if (name !== undefined) updateData.name = name;
 				if (color !== undefined) updateData.color = color === 'null' ? null : color;
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/labels/${labelId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -335,7 +336,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/labels/${labelId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'DELETE',
@@ -395,7 +396,7 @@ export function registerLabelsTools(server: McpServer, credentials: TrelloCreden
 				url.searchParams.append('token', credentials.apiToken);
 				url.searchParams.append('value', value);
 
-				const response = await fetch(url.toString(), {
+				const response = await fetchWithRetry(url.toString(), {
 					method: 'PUT',
 					headers: {
 						'Content-Type': 'application/json',

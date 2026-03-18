@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TrelloCredentials } from '../types/common.js';
+import { fetchWithRetry } from '../utils/api.js';
 
 /**
  * Register all Lists API tools
@@ -15,7 +16,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 		},
 		async ({ boardId }) => {
 			try {
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/boards/${boardId}/lists?key=${credentials.apiKey}&token=${credentials.apiToken}`
 				);
 				const data = await response.json();
@@ -63,7 +64,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -130,7 +131,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 				if (pos !== undefined) updateData.pos = pos;
 				if (subscribed !== undefined) updateData.subscribed = subscribed;
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists/${listId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -184,7 +185,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists/${listId}/closed?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -240,7 +241,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists/${listId}/idBoard?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -301,7 +302,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 				url.searchParams.append('token', credentials.apiToken);
 				if (filter) url.searchParams.append('filter', filter);
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 				return {
 					content: [
@@ -351,7 +352,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 				url.searchParams.append('token', credentials.apiToken);
 				if (fields) url.searchParams.append('fields', fields);
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 				return {
 					content: [
@@ -403,7 +404,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 				if (fields) url.searchParams.append('fields', fields);
 				if (filter) url.searchParams.append('filter', filter);
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 				return {
 					content: [
@@ -447,7 +448,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists/${listId}/archiveAllCards?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',
@@ -501,7 +502,7 @@ export function registerListsTools(server: McpServer, credentials: TrelloCredent
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/lists/${listId}/moveAllCards?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'POST',

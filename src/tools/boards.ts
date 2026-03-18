@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TrelloCredentials } from '../types/common.js';
+import { fetchWithRetry } from '../utils/api.js';
 
 /**
  * Register all Boards API tools
@@ -39,7 +40,7 @@ export function registerBoardsTools(server: McpServer, credentials: TrelloCreden
 					queryParams.append('organization', 'true');
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/members/me/boards?${queryParams}`
 				);
 				const data = await response.json();

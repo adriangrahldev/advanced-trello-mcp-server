@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TrelloCredentials } from '../types/common.js';
+import { fetchWithRetry } from '../utils/api.js';
 
 /**
  * Register all Actions API tools
@@ -45,7 +46,7 @@ export function registerActionsTools(server: McpServer, credentials: TrelloCrede
 				if (memberCreatorFields) url.searchParams.append('memberCreator_fields', memberCreatorFields);
 				if (memberFields) url.searchParams.append('member_fields', memberFields);
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 
 				return {
@@ -91,7 +92,7 @@ export function registerActionsTools(server: McpServer, credentials: TrelloCrede
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/actions/${actionId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'PUT',
@@ -147,7 +148,7 @@ export function registerActionsTools(server: McpServer, credentials: TrelloCrede
 					};
 				}
 
-				const response = await fetch(
+				const response = await fetchWithRetry(
 					`https://api.trello.com/1/actions/${actionId}?key=${credentials.apiKey}&token=${credentials.apiToken}`,
 					{
 						method: 'DELETE',
@@ -208,7 +209,7 @@ export function registerActionsTools(server: McpServer, credentials: TrelloCrede
 				if (member !== undefined) url.searchParams.append('member', member.toString());
 				if (emoji !== undefined) url.searchParams.append('emoji', emoji.toString());
 
-				const response = await fetch(url.toString());
+				const response = await fetchWithRetry(url.toString());
 				const data = await response.json();
 
 				return {
