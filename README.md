@@ -1,7 +1,7 @@
 # 🚀 Advanced Trello MCP Server
 
 > **Enhanced Model Context Protocol Server for Trello integration with Cursor AI**  
-> Complete API coverage with 40+ tools and enterprise-grade features
+> Production-hardened API layer, batch tools, and attachment downloads
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Trello API](https://img.shields.io/badge/Trello%20API-Complete-green.svg)](https://developer.atlassian.com/cloud/trello/rest/)
@@ -14,31 +14,42 @@
 
 ## 📋 Overview
 
-This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI. Originally supporting 15 basic tools, this version has been expanded to **44+ tools** covering multiple Trello API categories with enterprise-grade functionality.
+This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI (and similar MCP clients). It includes **~35 tools** across boards, lists, cards, labels, and actions, plus a **reliable HTTP layer** suited to heavy or sequential API use.
 
 ## ✨ Features
 
-### 🎯 **Complete API Coverage**
-- **Actions API**: 16 tools (Complete audit trail, reactions, comments)
-- **Lists API**: 9 tools (Complete list management)
-- **Cards API**: 8 tools (Enhanced card operations)
-- **Labels API**: 8 tools (Complete label management) ✅
-- **Boards API**: 1 tool (Basic board access)
+### 🛡️ **Reliability (production-tested)**
 
-### 🔧 **Enterprise Features**
-- **TypeScript Implementation** with strict typing
-- **Zod Validation** for all inputs and outputs
-- **Batch Operations** for bulk actions
-- **Error Handling** with detailed error messages
-- **Rate Limiting Ready** architecture
-- **Extensible Design** for future API additions
+All Trello calls (MCP **resources** and **tools**) go through a shared client in `src/utils/api.ts`:
+
+- **HTTPS keep-alive** — reuses TLS connections (helps avoid CloudFront / CDN connection churn on burst traffic)
+- **`fetchWithRetry`** — ~60s timeout, exponential backoff with jitter (up to 7 attempts), retries on network errors and 5xx
+- **Sliding-window rate limit** — ~80 requests / 10s (mutex-protected)
+- **429 handling** — respects `Retry-After` when present
+
+### 🎯 **API coverage (current)**
+
+| Area | Tools | Notes |
+|------|-------|--------|
+| **Lists** | 10 | Full list lifecycle, bulk card moves |
+| **Cards** | 12 | Batch create/move/archive/comments, **attachments** |
+| **Labels** | 8 | Including batch add |
+| **Actions** | 4 | Get / update / delete action, list reactions |
+| **Boards** | 1 | List accessible boards |
+
+### 🔧 **Other**
+
+- **TypeScript** + **Zod** validation on tool inputs
+- **Batch operations** — fewer round-trips for agents (`create-cards`, `move-cards`, `archive-cards`, `add-comments`, etc.)
+- **Attachment pipeline** — list metadata + optional download to disk (see below)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - Trello API Key and Token
-- Cursor AI with MCP support
+- Cursor (or any MCP client)
 
 ### Installation
 
@@ -64,13 +75,14 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
    export TRELLO_API_TOKEN="your_api_token"
    ```
 
-5. **Configure Cursor MCP**
-   Add to your `~/.cursor/mcp.json`:
+5. **Configure Cursor MCP**  
+   Add to your `~/.cursor/mcp.json` (paths adjusted for your machine):
    ```json
    {
-     "servers": {
+     "mcpServers": {
        "trello": {
-         "command": "/path/to/advanced-trello-mcp-server/build/index.js",
+         "command": "node",
+         "args": ["/path/to/advanced-trello-mcp-server/build/index.js"],
          "env": {
            "TRELLO_API_KEY": "your_api_key",
            "TRELLO_API_TOKEN": "your_api_token"
@@ -82,200 +94,115 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
 
 ## 🛠️ Available Tools
 
-### 📋 **Lists Management (9 tools)**
-- `get-lists` - Get all lists from a board
-- `create-list` - Create new list
-- `update-list` - Update list properties
-- `archive-list` - Archive/unarchive lists
-- `move-list-to-board` - Move lists between boards
-- `get-list-actions` - Get list action history
-- `get-list-board` - Get board information from list
-- `get-list-cards` - Get cards from list with filtering
-- `archive-all-cards-in-list` - Archive all cards in list
-- `move-all-cards-in-list` - Move all cards between lists
+### 📋 **Lists (10)**
 
-### 🎯 **Cards Management (9 tools)**
-- `create-card` - Create single card
-- `create-cards` - Create multiple cards (batch)
-- `update-card` - Update card description and/or name
-- `move-card` - Move card between lists
-- `move-cards` - Move multiple cards (batch)
-- `archive-card` - Archive single card
-- `archive-cards` - Archive multiple cards (batch)
-- `get-tickets-by-list` - Get cards from specific list
-- `add-comment` - Add comment to card
+- `get-lists` — Lists on a board
+- `create-list` / `update-list` / `archive-list`
+- `move-list-to-board`
+- `get-list-actions` / `get-list-board` / `get-list-cards`
+- `archive-all-cards-in-list` / `move-all-cards-in-list`
 
-### 🏷️ **Labels Management (8 tools)** ✅ **COMPLETE**
-- `create-label` - Create single label
-- `create-labels` - Create multiple labels (batch)
-- `add-label` - Add label to card
-- `add-labels` - Add labels to multiple cards (batch)
-- `get-label` - Get detailed label information
-- `update-label` - Update label name and color
-- `delete-label` - Delete label by ID
-- `update-label-field` - Update specific label field
+### 🎯 **Cards (12)**
 
-### 📊 **Actions & Audit (16 tools)**
-- `get-action` - Get detailed action information
-- `update-action` - Update action (comments)
-- `delete-action` - Delete action (comments only)
-- `get-action-field` - Get specific action field
-- `get-action-board` - Get board from action
-- `get-action-card` - Get card from action
-- `get-action-list` - Get list from action
-- `get-action-member` - Get member from action
-- `get-action-member-creator` - Get action creator
-- `get-action-organization` - Get organization from action
-- `update-comment-action` - Update comment text
-- `get-action-reactions` - Get action reactions
-- `create-action-reaction` - Add reaction to action
-- `get-action-reaction` - Get specific reaction
-- `delete-action-reaction` - Remove reaction
-- `get-action-reactions-summary` - Get reactions summary
+- `create-card` — Optional **`due`** and **`start`** (ISO 8601)
+- `create-cards` — Batch create; each card may include **`due`** / **`start`**
+- `update-card` — Name and/or description
+- `move-card` / `move-cards`
+- `add-comment` / **`add-comments`** (batch comments on multiple cards)
+- `get-tickets-by-list`
+- `archive-card` / `archive-cards`
+- **`get-card-attachments`** — Metadata + `commentContext` (e.g. screenshots on comments)
+- **`download-card-attachments`** — Downloads files to a folder (numbered files + `_manifest.json`). File URLs often require **OAuth-style `Authorization` header** (not query-string key/token); this tool handles that.
 
-### 🏢 **Boards Management (1 tool)**
-- `get-boards` - Get all accessible boards
+### 🏷️ **Labels (8)**
+
+- `create-label` / `create-labels`
+- `add-label` / `add-labels`
+- `get-label` / `update-label` / `delete-label` / `update-label-field`
+
+### 📊 **Actions (4)**
+
+- `get-action` — With optional display/entities/member params
+- `update-action` / `delete-action`
+- `get-action-reactions`
+
+### 🏢 **Boards (1)**
+
+- `get-boards`
+
+## ❓ Why is an old Pull Request still “open” on GitHub?
+
+GitHub marks a PR as **Merged** only when you merge **that PR** (green “Merge pull request” button), or when the PR branch is merged in a way GitHub links to the PR.
+
+If you **cherry-picked, copied files, or merged locally** into `main` and **pushed `main`**, the code is on the repo but **the PR stays open** until you:
+
+1. **Close the PR** manually — add a comment such as: *“Landed on `main` via commit &lt;hash&gt; — thanks!”*  
+2. Or use **GitHub’s merge** flow next time so the PR closes automatically.
+
+Conflicts on fork-based PRs are normal; resolving on your machine and pushing `main` is fine — just close the PR afterward so contributors know it’s done.
 
 ## 📈 Roadmap
 
-This project follows a strategic 6-phase expansion plan to achieve **100% Trello API coverage**:
-
-### **Phase 1: Foundation** (In Progress - 1/3 Complete)
-- ✅ Complete Lists API (9 tools)
-- ✅ Complete Actions API (16 tools)
-- ✅ Complete Labels API (8 tools) **DONE!**
-- 🔄 Enhanced Cards API (15 more tools needed)
-- 🔄 Enhanced Boards API (8 more tools needed)
-
-### **Phase 2: Productivity** (Planned)
-- Checklists API (12 tools)
-- Search API (3 tools)
-- Emoji API (2 tools)
-
-### **Phase 3: Collaboration** (Planned)
-- Members API (20 tools)
-- Organizations API (15 tools)
-
-### **Phase 4: Automation** (Planned)
-- Batch API (3 tools)
-- CustomFields API (12 tools)
-- Webhooks API (8 tools)
-
-### **Phase 5: Advanced Management** (Planned)
-- Notifications API (10 tools)
-- Plugins API (8 tools)
-- Tokens API (6 tools)
-
-### **Phase 6: Enterprise** (Planned)
-- Enterprises API (12 tools)
-- Applications API (4 tools)
-
-**Target: 182 total tools** (currently at 44)
+Broader Trello API coverage (checklists, members, webhooks, search, etc.) is planned. PRs welcome.
 
 ## 🔧 Development
 
-### Project Structure
+### Project structure
+
 ```
 advanced-trello-mcp-server/
-├── src/                 # TypeScript source code
-│   ├── index.ts         # Main MCP server implementation
-│   ├── tools/           # Modular tool implementations
-│   ├── types/           # TypeScript type definitions
-│   └── utils/           # Shared utilities
-├── build/               # Compiled JavaScript output
-│   └── index.js         # Executable entry point
-├── scripts/             # Build and utility scripts
-│   └── build.js         # Cross-platform build script
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── README.md           # This file
+├── src/
+│   ├── index.ts
+│   ├── tools/       # boards, lists, cards, labels, actions
+│   ├── types/
+│   └── utils/       # api.ts — fetchWithRetry, keep-alive, rate limit
+├── build/
+├── scripts/build.js
+├── package.json
+└── README.md
 ```
 
 ### Building
-```bash
-# Full build (TypeScript compilation + shebang)
-npm run build
 
-# TypeScript compilation only
-npm run compile
+```bash
+npm run build    # TypeScript + shebang on build/index.js
+npm run compile  # tsc only
 ```
 
-**Cross-Platform Build**: El script de build es completamente compatible con Windows, macOS y Linux, manejando automáticamente:
-- Compilación de TypeScript
-- Inyección de shebang (`#!/usr/bin/env node`)
-- Permisos de ejecución (en sistemas Unix)
-
-### Development Workflow
-1. Make changes in `src/` directory
-2. Run `npm run build` to compile
-3. Test with Cursor AI
-4. Commit changes with conventional commits
+**Cross-platform build** (Windows / macOS / Linux): compiles TS, adds `#!/usr/bin/env node`, sets execute bit on Unix.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+1. Fork the repository  
+2. Branch (`git checkout -b feature/...`)  
+3. Commit ([Conventional Commits](https://www.conventionalcommits.org/) encouraged)  
+4. Open a Pull Request  
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+If the maintainer merges your work outside the GitHub PR UI, they may close the PR with a link to the landing commit — that does **not** mean your contribution wasn’t accepted.
 
-### Commit Convention
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `refactor:` - Code refactoring
-- `test:` - Adding tests
-- `chore:` - Maintenance tasks
+## 📚 API documentation
 
-## 📚 API Documentation
-
-This server implements tools based on the official [Trello REST API documentation](https://developer.atlassian.com/cloud/trello/rest/). Each tool includes:
-
-- **Zod schema validation** for type safety
-- **Comprehensive error handling**
-- **Optional parameters** support
-- **Batch operations** where applicable
-- **Detailed JSDoc comments**
+Tools follow the [Trello REST API](https://developer.atlassian.com/cloud/trello/rest/). Inputs are validated with Zod.
 
 ## 🐛 Troubleshooting
 
-### Common Issues
-
-**1. "Trello API credentials are not configured"**
-- Ensure `TRELLO_API_KEY` and `TRELLO_API_TOKEN` are set
-- Verify the token has appropriate scopes (`read` minimum, `write` for modifications)
-
-**2. "Tool not found" errors**
-- Restart Cursor AI to refresh MCP server
-- Verify the build was successful (`npm run build`)
-- Check MCP configuration in `~/.cursor/mcp.json`
-
-**3. Permission errors**
-- Verify your Trello token has access to the boards/cards you're trying to modify
-- Some operations require `write` scope, not just `read`
+| Issue | What to check |
+|-------|----------------|
+| Credentials | `TRELLO_API_KEY` + `TRELLO_API_TOKEN`; token scopes (`read` / `write`) |
+| Tool not found | Rebuild (`npm run build`), restart MCP client |
+| `fetch failed` / timeouts | Retry layer should help; sustained 429 → slow down workflows |
+| Attachment download 401 | Use `download-card-attachments` (header auth), not raw URL with `?key=&token=` |
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- Original Trello MCP Server by [yairhaimo](https://github.com/yairhaimo/trello-mcp-server)
-- [Trello API Documentation](https://developer.atlassian.com/cloud/trello/rest/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Cursor AI](https://cursor.sh/)
-
-## 📊 Stats
-
-- **Total Tools**: 44 (vs 15 original)
-- **API Coverage**: ~40% (target: 100%)
-- **Lines of Code**: 2,500+ TypeScript
-- **Type Safety**: 100% with Zod validation
-- **Documentation**: Comprehensive inline docs
+- Original Trello MCP Server — [yairhaimo/trello-mcp-server](https://github.com/yairhaimo/trello-mcp-server)
+- Reliability, batch card/comment tools, and attachment downloads — community contributions (e.g. [Serebrennikovi](https://github.com/Serebrennikovi))
+- [Trello API](https://developer.atlassian.com/cloud/trello/rest/) · [MCP](https://modelcontextprotocol.io/) · [Cursor](https://cursor.com/)
 
 ---
 
-**Built with ❤️ for the Cursor AI community** 
+**Built with ❤️ for the Cursor AI community**
