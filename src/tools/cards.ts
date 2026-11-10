@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TrelloCredentials } from '../types/common.js';
 import { fetchWithRetry } from '../utils/api.js';
-import fs from 'node:fs/promises';
+import { createDownloadDirectory, validateDownloadLabel, writeDownloadFile } from '../utils/downloads.js';
 import path from 'node:path';
 
 /**
@@ -10,6 +10,8 @@ import path from 'node:path';
  * Based on https://developer.atlassian.com/cloud/trello/rest/api-group-cards/
  */
 export function registerCardsTools(server: McpServer, credentials: TrelloCredentials) {
+	// Capture trusted operator configuration at registration, never from tool arguments.
+	const downloadRoot = path.resolve(process.env.TRELLO_DOWNLOAD_ROOT || path.join(process.cwd(), 'trello-downloads'));
 	// POST /cards - Create a new card
 	server.tool(
 		'create-card',
@@ -672,11 +674,12 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 		'download-card-attachments',
 		{
 			cardId: z.string().describe('ID of the card to download attachments from'),
-			savePath: z.string().describe('Local directory path to save attachments to'),
+			savePath: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/).optional().describe('Optional folder label (1-64 letters, digits, underscores or hyphens; no paths). A unique directory is created under the server download root.'),
 			imagesOnly: z.boolean().optional().describe('Only download image files (default: true)'),
 		},
-		async ({ cardId, savePath, imagesOnly = true }) => {
+		async ({ cardId, savePath = 'attachments', imagesOnly = true }) => {
 			try {
+				validateDownloadLabel(savePath);
 				if (!credentials.apiKey || !credentials.apiToken) {
 					return { content: [{ type: 'text' as const, text: 'Trello API credentials are not configured' }], isError: true };
 				}
@@ -714,8 +717,8 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					return { content: [{ type: 'text' as const, text: `No ${imagesOnly ? 'image ' : ''}attachments found on card "${card.name}"` }] };
 				}
 
-				// Ensure output directory
-				await fs.mkdir(savePath, { recursive: true });
+				// Never let the caller choose a filesystem directory.
+				const outputDirectory = await createDownloadDirectory(downloadRoot, savePath);
 
 				// Download each attachment
 				const manifest: Array<{
@@ -741,9 +744,7 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					// Sanitize filename: {index}-{original_name}
 					const baseName = att.name.replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, '_');
 					const fileName = `${String(i + 1).padStart(2, '0')}-${baseName}`;
-					const filePath = path.join(savePath, fileName);
-
-					await fs.writeFile(filePath, buffer);
+					await writeDownloadFile(outputDirectory, fileName, buffer);
 
 					// Find comment context
 					let commentContext: string | null = null;
@@ -771,17 +772,13 @@ export function registerCardsTools(server: McpServer, credentials: TrelloCredent
 					downloadedAt: new Date().toISOString(),
 					files: manifest,
 				};
-				await fs.writeFile(
-					path.join(savePath, '_manifest.json'),
-					JSON.stringify(manifestData, null, 2),
-					'utf-8'
-				);
+				await writeDownloadFile(outputDirectory, '_manifest.json', JSON.stringify(manifestData, null, 2));
 
 				return {
 					content: [{
 						type: 'text' as const,
 						text: JSON.stringify({
-							savedTo: savePath,
+							savedTo: outputDirectory,
 							card: card.name,
 							filesDownloaded: manifest.length,
 							files: manifest.map(m => ({ file: m.file, mimeType: m.mimeType, bytes: m.bytes, commentContext: m.commentContext })),

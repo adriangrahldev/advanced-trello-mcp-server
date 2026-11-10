@@ -1,3 +1,6 @@
 node_modules
 .env
 build/
+
+# Default attachment download output
+trello-downloads/

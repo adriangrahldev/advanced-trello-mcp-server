@@ -94,7 +94,37 @@ All Trello calls (MCP **resources** and **tools**) go through a shared client in
 - `get-tickets-by-list`
 - `archive-card` / `archive-cards`
 - `**get-card-attachments**` — Metadata + `commentContext` (e.g. screenshots on comments)
-- `**download-card-attachments**` — Downloads files to a folder (numbered files + `_manifest.json`). File URLs often require **OAuth-style `Authorization` header** (not query-string key/token); this tool handles that.
+- `**download-card-attachments**` — Downloads files to a new private directory under the server's download root (numbered files + `_manifest.json`). File URLs often require **OAuth-style `Authorization` header** (not query-string key/token); this tool handles that.
+
+#### Safe attachment download locations
+
+`download-card-attachments` never accepts an arbitrary local path. The optional
+`savePath` argument is now a **folder label**, for example `card-photos`. It must
+contain 1–64 ASCII letters, digits, underscores or hyphens and start with a letter
+or digit. Absolute paths, nested paths and traversal components are rejected.
+Omit it to use the label `attachments`.
+
+The server creates a unique directory for every invocation, including repeated or
+concurrent downloads, and returns its absolute location in `savedTo`. The default
+root is `trello-downloads` under the server's working directory. Operators can set
+`TRELLO_DOWNLOAD_ROOT` in the server environment to choose a dedicated root; MCP
+clients cannot override it. Relative configuration is resolved at tool registration.
+
+**Migration:** Replace calls such as `savePath: "/tmp/card-photos"` with
+`savePath: "card-photos"`, configure `TRELLO_DOWNLOAD_ROOT` on the server if needed,
+and consume the returned `savedTo` rather than assuming a fixed output directory.
+
+Root components and output directories must be real directories, not symbolic
+links. Use a canonical path if your platform aliases directories through symlinks.
+Files (including the manifest) are created exclusively and never overwrite existing
+files or follow existing file links. New directories use private permissions and
+new files use owner-only permissions where supported by the OS. Keep the configured
+root and its ancestors controlled by the server operator, not writable by untrusted
+local users. These safeguards protect against untrusted MCP input; they do not
+isolate the process from a malicious local user who can rename its directories.
+Failed downloads may leave partial files in their unique directory; no success
+response is returned in that case.
+
 
 ### 🏷️ **Labels (8)**
 
@@ -148,6 +178,7 @@ advanced-trello-mcp-server/
 
 ```bash
 npm run build    # TypeScript + shebang on build/index.js
+npm test         # Compile + offline regression tests (Node.js test runner)
 npm run compile  # tsc only
 ```
 
